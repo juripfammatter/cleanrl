@@ -175,6 +175,13 @@ if __name__ == "__main__":
     dones = torch.zeros((args.num_steps, args.num_envs)).to(device)
     values = torch.zeros((args.num_steps, args.num_envs)).to(device)
 
+    #logging
+
+    print(f"Obs dim: {'':>10}{envs.single_observation_space.shape}")
+    print(f"Act dim: {'':>10}{envs.single_action_space.shape}")
+    print(f"num envs: {'':>10}{args.num_envs}")
+
+
     # TRY NOT TO MODIFY: start the game
     global_step = 0
     start_time = time.time()
@@ -307,6 +314,11 @@ if __name__ == "__main__":
         writer.add_scalar("losses/explained_variance", explained_var, global_step)
         print("SPS:", int(global_step / (time.time() - start_time)))
         writer.add_scalar("charts/SPS", int(global_step / (time.time() - start_time)), global_step)
+
+    # log policies
+    folder=os.path.join(writer.log_dir, "policy")
+    os.makedirs(folder)
+    torch.save(agent.actor, os.path.join(folder, "policy.pkl"))
 
     envs.close()
     writer.close()
