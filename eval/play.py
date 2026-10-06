@@ -47,16 +47,6 @@ def eval_run(filename:str):
     print(f"reward per episode: {log(returns/episodes_per_env)}")
     print(f"avg. episode length: {log(args.eval_iterations/episodes_per_env)}")
 
-    db = {
-        "returns": returns,
-        "max_iter": args.eval_iterations,
-        "episodes_per_env": episodes_per_env
-    }
-
-    result_file = os.path.join(os.path.dirname(filename), "results.pkl")
-    with open(result_file, "wb") as f:
-        pickle.dump(db, f)
-
 @dataclass
 class Args:
     exp_name: str = os.path.basename(__file__)[: -len(".py")]
@@ -67,7 +57,7 @@ class Args:
     """if toggled, `torch.backends.cudnn.deterministic=False`"""
     cuda: bool = True
     """if toggled, cuda will be enabled by default"""
-    capture_video: bool = False
+    capture_video: bool = True
     """whether to capture videos of the agent performances (check out `videos` folder)"""
     env_id: str = "CartPole-v1"
     """the id of the environment"""

@@ -9,17 +9,33 @@
             "name": "Python Debugger: Train",
             "type": "debugpy",
             "request": "launch",
-            "program": "${file}",
+            "program": "/workspaces/cleanrl/cleanrl/ppo.py",
             "console": "integratedTerminal",
-            "args": "--seed 42 --env-id CartPole-v0 --total-timesteps 50000"
+            "args": "--seed 42 --env-id CartPoleShaped-v0 --total-timesteps 5000"
         },
         {
-            "name": "Python Debugger: Eval",
+            "name": "Python Debugger: Eval Batch",
             "type": "debugpy",
             "request": "launch",
-            "program": "${file}",
+            "program": "/workspaces/cleanrl/eval/eval.py",
             "console": "integratedTerminal",
             "args": "--seed 42 --env-id CartPole-v0 --eval_iterations 12000"
+        },
+        {
+            "name": "Python Debugger: Eval Single File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "/workspaces/cleanrl/eval/eval.py",
+            "console": "integratedTerminal",
+            "args": "--seed 42 --env-id CartPole-v0 --eval_iterations 12000 --filename runs/CartPoleShaped-v0__ppo__9234__1791305086/policy/policy.pkl"
+        },
+        {
+            "name": "Python Debugger: Play Single File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "/workspaces/cleanrl/eval/play.py",
+            "console": "integratedTerminal",
+            "args": "--seed 42 --env-id CartPole-v0 --eval_iterations 1000 --filename runs/CartPoleShaped-v0__ppo__9234__1791305086/policy/policy.pkl"
         }
     ]
 }
