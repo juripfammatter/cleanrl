@@ -34,9 +34,12 @@ def eval_run(filename:str):
         next_obs, reward, terminations, truncations, infos = envs.step(action.cpu().numpy())
         next_done = np.logical_or(terminations, truncations)
         next_obs, next_done = torch.Tensor(next_obs).to(device), torch.Tensor(next_done).to(device)
-        #TODO: mask with dones?
-        episodes_per_env += next_done
-        returns += reward        
+
+        if "final_info" in infos:
+            for i, info in enumerate(infos["final_info"]):
+                if info is not None:
+                    episodes_per_env[i] = episodes_per_env[i] + 1
+                    returns[i] = returns[i] + info["episode"]["r"]        
 
     # log returns
     log = lambda x: f"{(x).mean().item():.2f} +- {(x).var().item()**0.5:.2f}"
