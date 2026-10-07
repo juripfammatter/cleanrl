@@ -319,7 +319,7 @@ if __name__ == "__main__":
     # log policies
     folder=os.path.join(writer.log_dir, "policy")
     os.makedirs(folder)
-    torch.save(agent.actor, os.path.join(folder, "policy.pkl"))
-
+    torch.save(agent.state_dict(), os.path.join(folder, "agent.pkl"))
+        
     envs.close()
     writer.close()

@@ -13,6 +13,7 @@ import tyro
 from torch.distributions.normal import Normal
 from torch.utils.tensorboard import SummaryWriter
 
+import envs
 
 @dataclass
 class Args:
@@ -349,5 +350,10 @@ if __name__ == "__main__":
             repo_id = f"{args.hf_entity}/{repo_name}" if args.hf_entity else repo_name
             push_to_hub(args, episodic_returns, repo_id, "PPO", f"runs/{run_name}", f"videos/{run_name}-eval")
 
+    # log policy
+    folder=os.path.join(writer.log_dir, "policy")
+    os.makedirs(folder)
+    torch.save(agent.state_dict(), os.path.join(folder, "agent.pkl"))
+        
     envs.close()
     writer.close()

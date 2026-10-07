@@ -8,13 +8,18 @@ import numpy as np
 import pickle
 import torch
 import tyro
-from torch.distributions.categorical import Categorical
 
-from cleanrl.ppo import Agent, make_env
+from cleanrl.ppo import make_env
 
-def eval_run(filename:str):
+def eval_run(filename:str, envs:any):
+
+    if isinstance(envs.single_action_space, gym.spaces.Box):
+        from cleanrl.ppo_continuous_action import Agent
+    else:
+        from cleanrl.ppo import Agent
     # Load agent
-    agent = torch.load(filename, weights_only=False)
+    agent = Agent(envs).to(device)
+    agent.load_state_dict(torch.load(filename, weights_only=True))
     agent.eval()
     #print(agent)
 
@@ -26,17 +31,18 @@ def eval_run(filename:str):
     returns = torch.zeros(args.num_envs).to(device)
     episodes_per_env = torch.zeros(args.num_envs).to(device)
     for i in range(args.eval_iterations):
-        with torch.no_grad():
-            logits = agent(next_obs)
-            probs = Categorical(logits=logits)
-            action = probs.sample()
+        action, _, _, _ = agent.get_action_and_value(next_obs)
 
         next_obs, reward, terminations, truncations, infos = envs.step(action.cpu().numpy())
         next_done = np.logical_or(terminations, truncations)
         next_obs, next_done = torch.Tensor(next_obs).to(device), torch.Tensor(next_done).to(device)
-        #TODO: mask with dones?
-        episodes_per_env += next_done
-        returns += reward        
+        
+        if "final_info" in infos:
+            for i, info in enumerate(infos["final_info"]):
+                if info is not None:
+                    episodes_per_env[i] = episodes_per_env[i] + 1
+                    returns[i] = returns[i] + info["episode"]["r"]        
+           
 
     # log returns
     log = lambda x: f"{(x).mean().item():.2f} +- {(x).var().item()**0.5:.2f}"
@@ -57,7 +63,7 @@ class Args:
     """if toggled, `torch.backends.cudnn.deterministic=False`"""
     cuda: bool = True
     """if toggled, cuda will be enabled by default"""
-    capture_video: bool = True
+    capture_video: bool = False
     """whether to capture videos of the agent performances (check out `videos` folder)"""
     env_id: str = "CartPole-v1"
     """the id of the environment"""
@@ -83,15 +89,13 @@ if __name__ == "__main__":
     envs = gym.vector.SyncVectorEnv(
         [make_env(args.env_id, i, args.capture_video, run_name) for i in range(args.num_envs)],
     )
-    assert isinstance(envs.single_action_space, gym.spaces.Discrete), "only discrete action space is supported"
-
 
     if args.filename is not None:
-        eval_run(args.filename)
+        eval_run(args.filename, envs)
     else:
         run_folder = "runs"
         subfolders = os.listdir(run_folder)
 
         for sub in reversed(subfolders):
-            filename = os.path.join(run_folder, sub, "policy/policy.pkl")
-            eval_run(filename)
+            filename = os.path.join(run_folder, sub, "policy/agent.pkl")
+            eval_run(filename, envs)

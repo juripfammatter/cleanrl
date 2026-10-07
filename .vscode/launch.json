@@ -14,6 +14,14 @@
             "args": "--seed 42 --env-id CartPoleShaped-v0 --total-timesteps 5000"
         },
         {
+            "name": "Train - Continuous",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "/workspaces/cleanrl/cleanrl/ppo_continuous_action.py",
+            "console": "integratedTerminal",
+            "args": "--seed 42 --env-id InvertedPendulum-v4 --total-timesteps 5000"
+        },
+        {
             "name": "Eval Batch",
             "type": "debugpy",
             "request": "launch",
@@ -27,7 +35,15 @@
             "request": "launch",
             "program": "/workspaces/cleanrl/eval/eval.py",
             "console": "integratedTerminal",
-            "args": "--seed 42 --env-id CartPole-v0 --eval_iterations 12000 --filename runs/CartPoleShaped-v0__ppo__1__1791365671/policy/policy.pkl"
+            "args": "--seed 42 --env-id CartPole-v0 --eval_iterations 12000 --filename /workspaces/cleanrl/runs/CartPoleShaped-v0__ppo__1__1791369157/policy/agent.pkl"
+        },
+        {
+            "name": "Eval Single File - C",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "/workspaces/cleanrl/eval/eval.py",
+            "console": "integratedTerminal",
+            "args": "--seed 42 --env-id InvertedPendulum-v4 --eval_iterations 12000 --filename /workspaces/cleanrl/runs/InvertedPendulum-v4__ppo_continuous_action__1__1791368214/policy/agent.pkl"
         },
         {
             "name": "Play Single File",
@@ -35,7 +51,16 @@
             "request": "launch",
             "program": "/workspaces/cleanrl/eval/play.py",
             "console": "integratedTerminal",
-            "args": "--seed 42 --env-id CartPole-v0 --eval_iterations 1000 --filename runs/CartPoleShaped-v0__ppo__1__1791365671/policy/policy.pkl"
+            "args": "--seed 42 --capture_video --env-id CartPole-v0 --eval_iterations 1000 --filename /workspaces/cleanrl/runs/CartPoleShaped-v0__ppo__1__1791369157/policy/agent.pkl"
+        }
+        ,
+        {
+            "name": "Play Single File - C ",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "/workspaces/cleanrl/eval/play.py",
+            "console": "integratedTerminal",
+            "args": "--seed 42  --env-id InvertedPendulum-v4 --eval_iterations 1000 --filename /workspaces/cleanrl/runs/InvertedPendulum-v4__ppo_continuous_action__1__1791368214/policy/agent.pkl"
         }
     ]
 }
