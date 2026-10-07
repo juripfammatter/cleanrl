@@ -119,11 +119,13 @@ class Agent(nn.Module):
     def get_value(self, x):
         return self.critic(x)
 
-    def get_action_and_value(self, x, action=None):
+    def get_action_and_value(self, x, action=None, deterministic=False):
         logits = self.actor(x)
         probs = Categorical(logits=logits)
         if action is None:
             action = probs.sample()
+        if deterministic:
+            action = probs.probs.argmax(dim=-1)
         return action, probs.log_prob(action), probs.entropy(), self.critic(x)
 
 

@@ -9,17 +9,14 @@ import pickle
 import torch
 import tyro
 
-
-from cleanrl.ppo import make_env
-
-def eval_run(filename:str):
+def eval_run(filename:str, envs:any):
     if isinstance(envs.single_action_space, gym.spaces.Box):
         from cleanrl.ppo_continuous_action import Agent
     else:
         from cleanrl.ppo import Agent
     # Load agent
     agent = Agent(envs).to(device)
-    agent.load_state_dict(torch.load(filename, weights_only=True))
+    agent.load_state_dict(torch.load(filename, weights_only=True, map_location=device))
     agent.eval()
     #print(agent)
 
@@ -31,7 +28,7 @@ def eval_run(filename:str):
     returns = torch.zeros(args.num_envs).to(device)
     episodes_per_env = torch.zeros(args.num_envs).to(device)
     for i in range(args.eval_iterations):
-        action, _, _, _ = agent.get_action_and_value(next_obs)
+        action, _, _, _ = agent.get_action_and_value(next_obs, deterministic=True)
         
         next_obs, reward, terminations, truncations, infos = envs.step(action.cpu().numpy())
         next_done = np.logical_or(terminations, truncations)
@@ -82,6 +79,8 @@ class Args:
     """ssnumber of eval iterations"""
     filename: str|None = None
     """filename in single filename mode"""
+    gamma: float = 0.99
+    """the discount factor gamma"""
 
 if __name__ == "__main__":
     args = tyro.cli(Args)
@@ -95,13 +94,20 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() and args.cuda else "cpu")
 
     # env setup
-    envs = gym.vector.SyncVectorEnv(
-        [make_env(args.env_id, i, args.capture_video, run_name) for i in range(args.num_envs)],
-    )
+    if isinstance(gym.make(args.env_id).env.action_space, gym.spaces.Box):
+        from cleanrl.ppo_continuous_action import make_env
+        envs = gym.vector.SyncVectorEnv(
+            [make_env(args.env_id, i, args.capture_video, run_name, args.gamma) for i in range(args.num_envs)]
+        )
+    else:
+        from cleanrl.ppo import make_env
+        envs = gym.vector.SyncVectorEnv(
+            [make_env(args.env_id, i, args.capture_video, run_name) for i in range(args.num_envs)],
+        )
 
 
     if args.filename is not None:
-        eval_run(args.filename)
+        eval_run(args.filename, envs)
     else:
         run_folder = "runs"
         subfolders = os.listdir(run_folder, envs)
