@@ -110,7 +110,7 @@ if __name__ == "__main__":
         eval_run(args.filename, envs)
     else:
         run_folder = "runs"
-        subfolders = os.listdir(run_folder, envs)
+        subfolders = os.listdir(run_folder)
 
         for sub in reversed(subfolders):
             filename = os.path.join(run_folder, sub, "policy/agent.pkl")
