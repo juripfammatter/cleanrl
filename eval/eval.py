@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 import gymnasium as gym
 import numpy as np
+from scipy import stats
 import pickle
 import torch
 import tyro
@@ -25,8 +26,9 @@ def eval_run(filename:str, envs:any):
     next_done = torch.zeros(args.num_envs).to(device)
 
     # rollout and collect return
-    returns = torch.zeros(args.num_envs).to(device)
-    episodes_per_env = torch.zeros(args.num_envs).to(device)
+    returns = []
+    successes = []
+
     for i in range(args.eval_iterations):
         action, _, _, _ = agent.get_action_and_value(next_obs, deterministic=True)
         
@@ -35,29 +37,40 @@ def eval_run(filename:str, envs:any):
         next_obs, next_done = torch.Tensor(next_obs).to(device), torch.Tensor(next_done).to(device)
 
         if "final_info" in infos:
-            for i, info in enumerate(infos["final_info"]):
+            for info in infos["final_info"]:
                 if info is not None:
-                    episodes_per_env[i] = episodes_per_env[i] + 1
-                    returns[i] = returns[i] + info["episode"]["r"]        
+                    returns.append(info["episode"]["r"])
+                    if hasattr(envs.envs[0].env, "_max_episode_steps"):
+                        if info["episode"]["l"] == envs.envs[0].env._max_episode_steps:
+                            successes.append(1)
+                        else:
+                            successes.append(0)
 
     # log returns
-    log = lambda x: f"{(x).mean().item():.2f} +- {(x).var().item()**0.5:.2f}"
-
+    # display mean + std
+    log_std = lambda x: f"{np.array(x).mean().item():>7.2f} +- {np.array(x).var().item()**0.5:.2f}"
+    log_se = lambda x: f"{np.array(x).mean().item():>7.2f} +- {np.array(x).var().item()**0.5/np.sqrt(len(x)):.2f}"
+    
     print(f"run: {filename}")
-    print(f"total returns: {log(returns)}")
-    print(f"reward per step: {log(returns/args.eval_iterations)}")
-    print(f"reward per episode: {log(returns/episodes_per_env)}")
-    print(f"avg. episode length: {log(args.eval_iterations/episodes_per_env)}")
+    print(f"{15*'-'} std {15*'-'}")
+    print(f"{'avg returns':<20}{log_std(returns):}")
+    print(f"{'success rate':<20}{log_std(successes):}")
+    print(f"{15*'-'} se {15*'-'}")
+    print(f"{'avg returns':<20}{log_se(returns):}")
+    print(f"{'success rate':<20}{log_se(successes):}")
 
     db = {
         "returns": returns,
-        "max_iter": args.eval_iterations,
-        "episodes_per_env": episodes_per_env
+        "mean_return": np.array(returns).mean().item(),
+        "success": successes,
+        "mean_success": np.array(successes).mean().item()
     }
 
     result_file = os.path.join(os.path.dirname(filename), "results.pkl")
     with open(result_file, "wb") as f:
         pickle.dump(db, f)
+
+    return db
 
 @dataclass
 class Args:
@@ -105,13 +118,38 @@ if __name__ == "__main__":
             [make_env(args.env_id, i, args.capture_video, run_name) for i in range(args.num_envs)],
         )
 
+    data = []
 
     if args.filename is not None:
-        eval_run(args.filename, envs)
+        data.append(eval_run(args.filename, envs))
     else:
         run_folder = "runs"
         subfolders = os.listdir(run_folder)
 
         for sub in reversed(subfolders):
             filename = os.path.join(run_folder, sub, "policy/agent.pkl")
-            eval_run(filename, envs)
+            data.append(eval_run(filename, envs))
+
+    envs.close()
+
+    # aggregate results
+
+    def metrics(x):
+        mean = np.array(x).mean().item()
+        std = np.array(x).std()
+        se = std/np.sqrt(len(x))
+        return {
+            "mean": mean,
+            "std": std,
+            "se": se
+        }
+    
+    returns = []
+    success_rates = []
+    for run in data:
+        returns.append(run["mean_return"])
+        success_rates.append(run["mean_success"])
+
+    print(f"{15*'-'} aggregate {15*'-'}")
+    print(f"{'avg episodic returns':<30}{metrics(returns)}")
+    print(f"{'success rate':<30}{metrics(success_rates)}")
