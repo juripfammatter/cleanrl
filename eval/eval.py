@@ -138,10 +138,12 @@ if __name__ == "__main__":
         mean = np.array(x).mean().item()
         std = np.array(x).std()
         se = std/np.sqrt(len(x))
+        ci = stats.t.interval(0.95, len(x)-1, loc=mean, scale=se)
         return {
             "mean": mean,
             "std": std,
-            "se": se
+            "se": se,
+            "ci": ci
         }
     
     returns = []

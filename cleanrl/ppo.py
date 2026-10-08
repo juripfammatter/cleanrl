@@ -317,7 +317,10 @@ if __name__ == "__main__":
         writer.add_scalar("losses/explained_variance", explained_var, global_step)
         print("SPS:", int(global_step / (time.time() - start_time)))
         writer.add_scalar("charts/SPS", int(global_step / (time.time() - start_time)), global_step)
-
+        #writer.add_hparams(vars(args), {
+        #        "charts/episodic_return": b_returns.mean().item(),
+        #    }, global_step=global_step)
+    
     # log policies
     folder=os.path.join(writer.log_dir, "policy")
     os.makedirs(folder)
